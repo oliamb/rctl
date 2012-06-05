@@ -1,0 +1,28 @@
+mysql:
+    short: m
+    start: 'mysql.server start'
+    stop: 'mysql.server stop'
+mongodb:
+    short: o
+    start: 'mongod run --config /usr/local/etc/mongod.conf --fork --logpath /usr/local/var/log/mongodb/mongod.log'
+    stop: 'killall -2 mongod'
+solr:
+    dependencies:
+        - mongodb
+        - mysql
+    short: s
+    start: 'bundle exec rake sunspot:solr:start'
+    stop: "ps aux | grep 'solr' | grep -v 'grep' | awk '{print $2}' | xargs kill -2"
+unicorn:
+    dependencies:
+        - solr
+        - mongodb
+        - mysql
+    short: u
+    start: 'bundle exec unicorn -c ./config/unicorn.conf.rb -D'
+    stop: "ps aux | grep 'unicorn master' | grep -v 'grep' | awk '{print $2}' | xargs kill -QUIT"
+nginx:
+    dependencies: unicorn
+    short: n
+    start: 'sudo /usr/local/sbin/nginx'
+    stop: "ps aux | grep 'nginx' | grep -v 'grep' | awk '{print $2}' | sudo xargs kill -QUIT"

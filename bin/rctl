@@ -1,0 +1,51 @@
+#!/usr/bin/ruby
+#charset: utf-8
+
+require 'rctl'
+require 'rctl/version'
+require 'optparse'
+
+ctl = Rctl::Ctl.new
+server_switch = []
+usage = false
+options = {}
+
+
+parser = OptionParser.new do |opt|
+  opt.banner = "Usage: rctl COMMAND [OPTIONS]"
+  opt.separator ""
+  opt.separator "Commands"
+  opt.separator "    start   start server(s)"
+  opt.separator "    stop    stop server(s)"
+  opt.separator ""
+  opt.separator "Options"
+
+  opt.on("-a", "--all", "do COMMAND on all servers (by default)") { server_switch = ctl.commands.keys }
+
+  ctl.commands.each do |name, args|
+    opt.on("-#{args['short']}", "--#{name.to_s}", "do COMMAND on #{name.to_s} server") do
+      server_switch.push name
+    end
+  end
+
+  opt.on "-c CONFIG_FILE", "--config", "Read an alternate YAML configuration file (default is created in ~/.rctl.rc.yaml)." do |f|
+    options[:config] = File.expand_path(f)
+  end
+  
+  opt.on("-v", "--version", "display version information") do
+    puts "Rctl CTL version #{Rctl::CtlVersion::VERSION}"
+    exit
+  end
+  
+  opt.on("-h", "--help", "display this help message") do
+    usage = true
+  end
+end
+parser.parse!
+
+if usage || !ARGV[0] || ARGV[0] == 'help'
+  puts parser
+else
+  server_switch = ctl.commands.keys if server_switch.empty?
+  exec ctl.generate(ARGV[0], server_switch)
+end
